@@ -10,11 +10,15 @@ import nebula from './images/potm2412aResize.jpg';
 const vendingMachine = new URL('./assets/vendingMachine.glb', import.meta.url);
 const donut = new URL('./assets/donut.glb', import.meta.url);
 
+// ========================================================================================== //
+//sets up the renderer
 const renderer = new THREE.WebGLRenderer();
 renderer.shadowMap.enabled = true;
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
+// ========================================================================================== //
+//setting up the scene and camerawork/movement
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(
   75,
@@ -24,14 +28,38 @@ const camera = new THREE.PerspectiveCamera(
 );
 
 const orbit = new OrbitControls(camera, renderer.domElement);
-
-const axesHelper = new THREE.AxesHelper(8
-);
-scene.add(axesHelper);
-
 camera.position.set(-10,30,30);
 orbit.update();
+// =-======================================================================================== //
+const uniforms = {
+  u_time: {type: 'f', value:0.0},
+  u_resolution: {type: 'v2', value: new THREE.Vector2(window.innerWidth, window.innerHeight)
+                  .multiplyScalar(window.devicePixelRatio)},
+  u_mouse: {type: 'v2', value: new THREE.Vector2(0,0)},
+  image: {type: 't', value: new THREE.TextureLoader().load(nebula)}
+}
 
+window.addEventListener('mousemove', function(e){
+  uniforms.u_mouse.value.set(e.screenX / this.window.innerWidth, 1- e.screenY / this.window.innerHeight);
+});
+
+const shadeGeometry = new THREE.PlaneGeometry(30,30,30,30);
+const shadeMaterial = new THREE.ShaderMaterial({
+  vertexShader: document.getElementById('vertexShader').textContent,
+  fragmentShader: document.getElementById('fragmentShader').textContent,
+  wireframe: false,
+  uniforms
+});
+const shaderMesh = new THREE.Mesh(shadeGeometry, shadeMaterial);
+scene.add(shaderMesh);
+shaderMesh.position.set(0,15,0);
+const clock = new THREE.Clock();
+
+//dumb axes guide
+const axesHelper = new THREE.AxesHelper(8);
+scene.add(axesHelper);
+
+//box 1!!! this green one just rotates around and does nothing
 const boxGeometry = new THREE.BoxGeometry();
 const boxMaterial = new THREE.MeshStandardMaterial({
   color: 0x00FF00
@@ -39,6 +67,7 @@ const boxMaterial = new THREE.MeshStandardMaterial({
 const box = new THREE.Mesh(boxGeometry, boxMaterial);
 scene.add(box);
 
+//the plane. literally the floor, gives examples of shadowwork
 const planeGeometry = new THREE.PlaneGeometry(30, 30);
 const planeMaterial = new THREE.MeshStandardMaterial({
   color: 0xFFFFFF,
@@ -46,12 +75,13 @@ const planeMaterial = new THREE.MeshStandardMaterial({
 });
 const plane = new THREE.Mesh(planeGeometry, planeMaterial);
 scene.add(plane);
-plane.rotation.x = Math.PI/-2;
+plane.rotation.x = Math.PI/-2; //flat plane
 plane.receiveShadow = true;
-
+//dumb guide thing for the plane
 const gridHelper = new THREE.GridHelper(30);
 scene.add(gridHelper);
 
+//sphere 1!!! it bounces
 const sphereGeometry = new THREE.SphereGeometry(4, 20, 20);
 const sphereMaterial = new THREE.MeshStandardMaterial({
   color: 0x0000FF,
@@ -62,9 +92,11 @@ scene.add(sphere);
 sphere.position.set(-10, 0, 0);
 sphere.castShadow = true;
 
+//lighting, not that strong i believe, it just kind of exists
 const ambientLight = new THREE.AmbientLight(0x333333, 2);
 scene.add(ambientLight);
 
+//alternative lightning that goes in one direction (different from spotlight)
 // const directionalLight = new THREE.DirectionalLight(0xFFFFFF, .8);
 // scene.add(directionalLight);
 // directionalLight.position.set(-30, 50, 0);
@@ -77,26 +109,29 @@ scene.add(ambientLight);
 // const dLightShadowHelper = new THREE.CameraHelper(directionalLight.shadow.camera);
 // scene.add(dLightShadowHelper);
 
+//spotlight version of lighting
 const spotLight = new THREE.SpotLight(0xFFFFFF);
 scene.add(spotLight);
 spotLight.position.set(-100,100,0);
 spotLight.castShadow = true;
 spotLight.angle = 0.2;
-
+//dumb guide for spotlight lighting
 const sLightHelper = new THREE.SpotLightHelper(spotLight);
 scene.add(sLightHelper);
 
-//scene.fog = new THREE.Fog(0xFFFFFF, 0, 200);
-scene.fog = new THREE.FogExp2(0xFFFFFF, 0.01);
+//go far away from objects, realize that it slowly becomes less visible
+//scene.fog = new THREE.Fog(0xFFFFFF, 0, 200); //linear
+scene.fog = new THREE.FogExp2(0xFFFFFF, 0.01); //expo
 
 //renderer.setClearColor(0xF000F); //sets background a color
 
 //const textureLoader = new THREE.TextureLoader(); //2d background texture 
 //scene.background = textureLoader.load(space); //2d background texture
 
+//the 3d background cube
 const cubeTextureLoader = new THREE.CubeTextureLoader(); //3d background texture 
 scene.background = cubeTextureLoader.load([ //3d background texture through a cube
-  space,
+  space, //HAS TO BE 1:1 RATIO
   space,
   space,
   space,
@@ -107,11 +142,12 @@ scene.background = cubeTextureLoader.load([ //3d background texture through a cu
 //const textureLoader = new THREE.TextureLoader();
 //const nebulaTexture = textureLoader.load(nebula); //these two lines are alternatives to the map thing already made
 
+//box 2!!!!!! it's the one for texturing experimentation
 const box2Geometry = new THREE.BoxGeometry(6,6,6);
 const box2Material = new THREE.MeshStandardMaterial({
   map: new THREE.TextureLoader().load(nebula)
 });
-// const box2MultiMaterial = [ for 6 face textures
+// const box2MultiMaterial = [ for 6 face textures (ALTERNATIVE)
 //   new THREE.MeshStandardMaterial({map: new THREE.TextureLoader().load(nebula)}),
 //   new THREE.MeshStandardMaterial({map: new THREE.TextureLoader().load(nebula)}),
 //   new THREE.MeshStandardMaterial({map: new THREE.TextureLoader().load(nebula)}),
@@ -127,6 +163,7 @@ scene.add(box2);
 box2.position.set(10, 3.04, 10);
 box2.castShadow = true;
 
+//the wireframe plane that keeps spazzing out
 const plane2Geometry = new THREE.PlaneGeometry(10, 10, 10, 10);
 const plane2Material = new THREE.MeshStandardMaterial({
   color: 0xFFFFFF,
@@ -137,6 +174,7 @@ scene.add(plane2);
 plane2.position.set(10,5,15);
 plane2.castShadow = true;
 
+//the spazzing part of the plane, just some vertex manipulation
 //vertex 1: xyz, vertex 2: xyz, etc etc
 plane2.geometry.attributes.position.array[6] -= 10 * Math.random(); //
 plane2.geometry.attributes.position.array[7] -= 10 * Math.random();
@@ -144,6 +182,7 @@ plane2.geometry.attributes.position.array[8] -= 10 * Math.random();
 const lastPointZ = plane2.geometry.attributes.position.array.length - 1;
 plane2.geometry.attributes.position.array[lastPointZ] -= 10 * Math.random();
 
+//shader check for sphere 2
 const sphere2Geometry = new THREE.SphereGeometry(4);
 const vShader = `
   void main(){
@@ -155,7 +194,6 @@ const fShader = `
     gl_FragColor = vec4(.7,.4,1,1); //appears to be RGB Intensity?
   }
 `;
-
 const sphere2Material = new THREE.ShaderMaterial({
   vertexShader: vShader,
   fragmentShader: fShader
@@ -165,6 +203,7 @@ scene.add(sphere2);
 sphere2.position.set(5, 4, -9);
 sphere2.castShadow = true;
 
+//brought the blender donut here, and the textureless vending machine
 const assetLoader = new GLTFLoader();
 assetLoader.load(vendingMachine.href, function(gltf){
   const model = gltf.scene;
@@ -192,7 +231,7 @@ assetLoader.load(donut.href, function(gltf){
   console.error(error);
 });
 
-
+//gui (top right)
 const gui = new dat.GUI();
 const options = {
   sphereColor: '#ffea00',
@@ -214,6 +253,7 @@ gui.add(options, 'angle', 0, 1);
 gui.add(options, 'penumbra', 0, 1);
 gui.add(options, 'intensity', 0, 30000);
 
+//CONSOLE DATA!!!! takes the data and checks if im hovering over an interactable object
 let step = 0;
 
 const mousePosition = new THREE.Vector2();
@@ -227,13 +267,15 @@ const rayCaster = new THREE.Raycaster();
 const sphereId = sphere.id;
 box2.name = 'theBox';
 
-const randomHexColorCode = () => {
+const randomHexColorCode = () => { //colors for sphere
   let n = (Math.random() * 0xfffff * 1000000).toString(16);
   return '#' + n.slice(0, 6);
 };
 
-
+// ========================================================================================= //
+//animations
 function animate(time){
+  uniforms.u_time.value = clock.getElapsedTime();
   box.rotation.x = time / 1500;
   box.rotation.y = time / 1500;
   step += options.speed;
@@ -270,6 +312,7 @@ function animate(time){
 
 renderer.setAnimationLoop(animate);
 
+//resizing the window and making sure it's always adaptable
 window.addEventListener('resize', function(){
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
